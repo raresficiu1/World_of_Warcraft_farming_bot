@@ -84,34 +84,34 @@ while True:
     # ok=1
     # PressKey(W)
 
-    _, radar = cv2.threshold(r, 240, 255, cv2.THRESH_TOZERO)
+    _, radar = cv2.threshold(r, 250, 255, cv2.THRESH_TOZERO)
 
-    #cv2.imshow('Radar', radar)
+    cv2.imshow('Radar', radar)
 
 
     # _, folositor = cv2.threshold(crop_img, 127, 255, cv2.THRESH_TOZERO)
     # # thresh4 =cv2.cvtColor(thresh4, cv2.COLOR_BGR2GRAY)
-    lines = cv2.HoughLinesP(radar, 1, np.pi / 180, 100, 30, 30)
+    lines = cv2.HoughLinesP(radar, 2, np.pi / 180, 60, 10, 100)
 
-    previousDistance=0
-    previousX=0
-    previousY=0
+
     try:
-
         for each in lines:
             coords=each[0]
-            cv2.line(printscreen, (coords[0], coords[1]),(coords[2], coords[3]), (255, 0, 0), 2)
+            #print(coords)
+            cv2.line(printscreen, (coords[0], coords[1]),(coords[2], coords[3]), (255, 0, 0), 4)
 
-        targetX, targetY,distance,x11,y11,x22,y22 = getClosestPoint(lines, myX, mY)
-
-        cv2.line(printscreen, (myX, mY),(int(targetX), int(targetY)), (255, 0, 0), 5)
-
-
-        cv2.line(location,(x11, y11),(x22, y22), (255, 0, 0), 10)
+        targetX, targetY,distance,points = getClosestPoint(lines, myX, mY)
         print(distance)
+        cv2.line(printscreen, (myX, mY),(int(targetX), int(targetY)) , (255, 0, 0), 5)
+
+
+        #cv2.line(location,(x11, y11),(x22, y22), (255, 0, 0), 10)
+        #print(distance)
     except:
         pass
 
+    for each in points:
+        location = cv2.circle(location, (int(each[0]), int(each[1])), 1, (255, 255, 255), 1)
     cv2.imshow('Radar with lines', printscreen)
     cv2.imshow('TARGET LINE', location)
 

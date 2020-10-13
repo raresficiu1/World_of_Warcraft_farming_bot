@@ -1,11 +1,12 @@
 import math
 import time
-
+import numpy as np
 
 def getslope(x1,y1,x2,y2):
-    return((y2-y1)/(x2-x1))
+    return (y2-y1)/(x2-x1)
 
-def getDistance(x1,y1,x2,y2,pointX,pointY):
+
+def getDistancetoLine(x1,y1,x2,y2,pointX,pointY):
     #aflu panta liniei initiale
     slope = getslope(x1,y1,x2,y2)
     #calculez b ul
@@ -22,16 +23,23 @@ def getDistance(x1,y1,x2,y2,pointX,pointY):
     interceptY = intercept
 
     distance = math.sqrt((interceptY-pointY)**2 + (interceptX-pointX)**2)
-
     online= checkOnLine(x1,y1,x2,y2,interceptX,interceptY)
     #print(x1,y1,x2,y2)
     return (interceptX,interceptY,distance,online)
 
+def getDistancetoPoint(x1,y1,myX,mY):
+    return(math.sqrt((y1 - mY) ** 2 + (x1 - myX) ** 2))
+
 def getClosestPoint(lines,myX,mY):
-    minDistance=99999999
+    minDistance=99999
     targetX=myX
     targetY=mY
+    points=[]
     for each in lines:
+        coords = each[0]
+        for each1 in getPoints(coords[0], coords[1],coords[2], coords[3]):
+            points.append(each1)
+        ''' 
         online=False
         coords = each[0]
         tx,ty,distance,online = getDistance(coords[0], coords[1],coords[2], coords[3],myX,mY)
@@ -45,8 +53,17 @@ def getClosestPoint(lines,myX,mY):
             x2=coords[2]
             y2=coords[3]
 
+        '''
+    #print(len(points))
+    for each in points:
+        distance = math.sqrt((each[1] - mY) ** 2 + (each[0] - myX) ** 2)
+        #distance=getDistancetoPoint(x1,y1,myX,mY)
+        if(minDistance>distance):
+            minDistance = distance
+            targetX=each[0]
+            targetY=each[1]
 
-    return (targetX,targetY,minDistance,x1,y1,x2,y2)
+    return (targetX,targetY,minDistance,points)
 
 
 def checkOnLine(x1,y1,x2,y2,interceptX,interceptY):
@@ -54,3 +71,11 @@ def checkOnLine(x1,y1,x2,y2,interceptX,interceptY):
     pt3_on = (interceptY - y1) == slope * (interceptX - x1)
     #print(pt3_on)
     return pt3_on
+
+def getPoints(x1,y1,x2,y2):
+    points=[]
+    slope=getslope(x1,y1,x2,y2)
+    b = -(slope * x1) + y1
+    for x in np.arange(x1,x2,0.1):
+        points.append((x,slope*x+b))
+    return points
