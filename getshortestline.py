@@ -39,21 +39,7 @@ def getClosestPoint(lines,myX,mY):
         coords = each[0]
         for each1 in getPoints(coords[0], coords[1],coords[2], coords[3]):
             points.append(each1)
-        ''' 
-        online=False
-        coords = each[0]
-        tx,ty,distance,online = getDistance(coords[0], coords[1],coords[2], coords[3],myX,mY)
 
-        if(minDistance>=distance):
-            minDistance = distance
-            targetX=tx
-            targetY=ty
-            x1=coords[0]
-            y1=coords[1]
-            x2=coords[2]
-            y2=coords[3]
-
-        '''
     #print(len(points))
     for each in points:
         distance = math.sqrt((each[1] - mY) ** 2 + (each[0] - myX) ** 2)
