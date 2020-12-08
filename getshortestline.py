@@ -3,6 +3,9 @@ import time
 import numpy as np
 
 def getslope(x1,y1,x2,y2):
+
+    if(abs(x1-x2)<1):
+        return 'INF'
     return (y2-y1)/(x2-x1)
 
 
@@ -40,6 +43,7 @@ def getClosestPoint(lines,myX,mY):
         for each1 in getPoints(coords[0], coords[1],coords[2], coords[3]):
             points.append(each1)
 
+
     #print(len(points))
     for each in points:
         distance = math.sqrt((each[1] - mY) ** 2 + (each[0] - myX) ** 2)
@@ -61,7 +65,18 @@ def checkOnLine(x1,y1,x2,y2,interceptX,interceptY):
 def getPoints(x1,y1,x2,y2):
     points=[]
     slope=getslope(x1,y1,x2,y2)
-    b = -(slope * x1) + y1
-    for x in np.arange(x1,x2,0.1):
-        points.append((x,slope*x+b))
+    if(slope!='INF'):
+        b = -(slope * x1) + y1
+        for x in np.arange(x1,x2,0.1):
+            points.append((x,slope*x+b))
+    else:
+        if(y1>y2):
+            for y in np.arange(y2,y1,0.1):
+                points.append((x1,y))
+        else:
+            for y in np.arange(y1,y2,0.1):
+                points.append((x1,y))
+
     return points
+
+
