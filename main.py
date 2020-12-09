@@ -5,7 +5,7 @@ from directkeys import PressKey, ReleaseKey, W,numpad5,numpad4
 import time
 from PIL import Image
 from getshortestline import getClosestPoint,getDistancetoPoint
-from nextStep import next
+from nextStep import next,get_angle2
 from pynput.mouse import Listener
 import math
 
@@ -52,6 +52,9 @@ def grab_screen(region=None):
 
     return img, img2
 
+def press():
+    pass
+
 def update_direction(points):
     global direction
     allowedDistance = 100
@@ -72,7 +75,6 @@ def update_direction(points):
             if(realdistance<5):
                 ok=1
                 bestPointsFromCenter.append([x1,y1])
-
         #gasesc punctele cele mai apropiate de vechea directie
 
         if(ok==1):
@@ -87,10 +89,10 @@ def update_direction(points):
                 if(distance<bestdistanceFromPrevious):
                     bestdistanceFromPrevious=distance
                     bestPoint=[x1,y1]
+        direction[0] = bestPoint[0]
+        direction[1] = bestPoint[1]
 
 
-            direction[0]= bestPoint[0]
-            direction[1]= bestPoint[1]
 
 
 #Functia initiala de calibrare
@@ -127,7 +129,7 @@ for j in range(1):
     print(3-j)
 calibrate()
 
-for i in range(1):
+for i in range(5):
     print('Program starting in:', 5-i,' seconds')
     time.sleep(1)
 
@@ -136,7 +138,19 @@ ok = 0
 steps=0
 currentX=int(r)
 currentY=int(r)
+
+kp=0.5
+ki=0.01
+kd=0
+sum_error=0
+previous_error=1
+current_error=1
+v=0.001
+
 while True:
+    PressKey(W)
+    ReleaseKey(numpad4)
+    ReleaseKey(numpad5)
     printscreen, location = grab_screen([0, 31, 720, 607])  #printscreen
     printscreen = printscreen[initialY-r:initialY+r,initialX-r:initialX+r]#decupez
     blank = np.zeros((2*r,2*r))
@@ -162,8 +176,10 @@ while True:
         targetX, targetY,distance,points = getClosestPoint(lines, currentX, currentY)
 
         update_direction(points)
+
         cv2.line(printscreen, (currentX, currentY),(int(targetX), int(targetY)) , (255, 0, 0), 5)
-        cv2.line(printscreen, (currentX,currentY),(currentX,currentY-200),(0,255,0),5)
+        cv2.line(printscreen, (currentX,currentY),(currentX,currentY-100),(0,255,0),5)
+        cv2.line(printscreen, (currentX, currentY), (int(direction[0]), int(direction[1])), (255, 255, 255), 5)
         next(targetX, targetY, currentX, currentY, distance)
 
     except Exception as e:
@@ -174,6 +190,34 @@ while True:
     for each in points:
         blank = cv2.circle(blank, (int(each[0]), int(each[1])), 1, (255, 0, 0),1)
 
+
+    angle = get_angle2(currentX,currentY,direction[0],direction[1])
+    previous_error = current_error
+    current_error = angle
+    #stanga
+    if(current_error)>0.09:
+        if(currentX<direction[0]):
+            sum_error=sum_error-distance
+            try:
+                u=current_error*kp+sum_error*ki+(current_error/previous_error)*kd
+            except:
+                u = current_error * kp + sum_error * ki
+
+            PressKey(numpad5)
+            time.sleep(v*abs(u))
+            #ReleaseKey(numpad5)
+        elif currentX>direction[0]:
+            sum_error = sum_error + distance
+            try:
+                u = current_error * kp + sum_error * ki + (current_error / previous_error) * kd
+            except:
+                u = current_error * kp + sum_error * ki
+
+            PressKey(numpad4)
+            time.sleep(v * abs(u))
+            #ReleaseKey(numpad4)
+        #print("U=", u, 'current_error',current_error,'sum_error',sum_error)
+
     cv2.imshow('Linii', blank2)
     cv2.imshow('Puncte scoase', blank)
     update_direction(points)
@@ -183,7 +227,7 @@ while True:
     cv2.imshow('Radar with lines', printscreen)
 
 
-    if(steps%5==0):
+    if(steps%600==0):
         print("Current distance:", distance)
     steps+=1
     #oprire
