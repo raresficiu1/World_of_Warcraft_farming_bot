@@ -43,6 +43,7 @@ def get_angle2(currentX,currentY,targetX,targetY):
         result='ERROR'
 
     return(result)
+
 def whichSide(targetX,myX,targetY,mY):
     #daca X e in stanga
     if(targetX<myX):

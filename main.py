@@ -9,6 +9,7 @@ from nextStep import next,get_angle2
 from pynput.mouse import Listener
 import math
 
+#Values
 calibrationScreen=False
 calibrationDirection=False
 direction=[0,0]
@@ -17,6 +18,13 @@ initialY=323-31
 currentX=360
 currentY=323-31
 r=125
+HMin=23
+HMax=23
+VMin=201
+VMax=255
+SMin=227
+SMax=255
+
 def grab_screen(region=None):
     hwin = win32gui.GetDesktopWindow()
 
@@ -40,20 +48,58 @@ def grab_screen(region=None):
 
     signedIntsArray = bmp.GetBitmapBits(True)
     img = np.fromstring(signedIntsArray, dtype='uint8')
-    img2 = np.fromstring(signedIntsArray, dtype='uint8')
 
     img.shape = (height, width, 4)
-    img2.shape = (height, width, 4)
+
 
     srcdc.DeleteDC()
     memdc.DeleteDC()
     win32gui.ReleaseDC(hwin, hwindc)
     win32gui.DeleteObject(bmp.GetHandle())
 
-    return img, img2
+    return img
 
-def press():
-    pass
+def init_control_gui():
+    global HMin, HMax, VMin, VMax, SMin, SMax
+    window = cv2.namedWindow('window',cv2.WINDOW_NORMAL)
+    cv2.resizeWindow(window,350,700)
+    def nothing(position):
+        pass
+    cv2.createTrackbar('HMin', 'window', 0, 179, nothing)
+    cv2.createTrackbar('HMax', 'window', 0, 179, nothing)
+    cv2.createTrackbar('SMin', 'window', 0, 255, nothing)
+    cv2.createTrackbar('SMax', 'window', 0, 255, nothing)
+    cv2.createTrackbar('VMin', 'window', 0, 255, nothing)
+    cv2.createTrackbar('VMax','window', 0, 255, nothing)
+
+    cv2.setTrackbarPos('HMin', 'window', HMin)
+    cv2.setTrackbarPos('SMin', 'window', SMin)
+    cv2.setTrackbarPos('VMin', 'window', VMin)
+    cv2.setTrackbarPos('HMax','window',HMax)
+    cv2.setTrackbarPos('SMax','window',SMax)
+    cv2.setTrackbarPos('VMax', 'window', VMax)
+
+
+def get_filters_from_panel():
+    global HMin,HMax,VMin,VMax,SMin,SMax
+    HMin = cv2.getTrackbarPos('HMin','window')
+    HMax = cv2.getTrackbarPos('HMax', 'window')
+    VMin = cv2.getTrackbarPos('VMin', 'window')
+    VMax = cv2.getTrackbarPos('VMax','window')
+    SMin = cv2.getTrackbarPos('SMin', 'window')
+    SMax = cv2.getTrackbarPos('SMax', 'window')
+
+def HSVFILTER(original_image):
+    global HMin, HMax, VMin, VMax, SMin, SMax
+    frame_HSV = cv2.cvtColor(original_image, cv2.COLOR_BGR2HSV)
+    frame_threshold = cv2.inRange(frame_HSV, (HMin, SMin, VMin), (HMax, SMax, VMax))
+    aux= np.zeros((250,250,3))
+    aux[0:250,0:250,1]=frame_threshold
+    aux[0:250, 0:250, 0] = frame_threshold
+    aux[0:250, 0:250, 2] = frame_threshold
+    aux = cv2.cvtColor(original_image, cv2.COLOR_BGR2GRAY)
+
+    return(aux)
 
 def update_direction(points):
     global direction
@@ -100,10 +146,10 @@ def calibrate():
     global calibrationScreen
     global calibrationDirection
     global direction
-
+    pressed=False
     while (calibrationScreen == False or calibrationDirection==False):
         flags, hcursor, loc = win32gui.GetCursorInfo()
-        printscreen, _ = grab_screen([0, 31, 720, 607])
+        printscreen= grab_screen([0, 31, 720, 607])
         printscreen = cv2.circle(printscreen, (currentX, currentY), 1, (0, 0, 255), 5)
         if(calibrationScreen==False):
             if cv2.waitKey(25) & 0xFF == ord('q'):
@@ -118,7 +164,17 @@ def calibrate():
             if cv2.waitKey(25) & 0xFF == ord('w'):
                 calibrationDirection = True
                 print("Direction has been calibrated")
-        cv2.imshow('calibration_window', printscreen)
+
+        if cv2.waitKey(25) & 0xFF == ord('k'):
+            pressed=True
+            init_control_gui()
+
+        if(pressed):
+            get_filters_from_panel()
+            cv2.imshow('calibration_window', HSVFILTER(printscreen))
+        else:
+            cv2.imshow('calibration_window', printscreen)
+
     cv2.destroyAllWindows()
 
 
@@ -129,7 +185,7 @@ for j in range(1):
     print(3-j)
 calibrate()
 
-for i in range(5):
+for i in range(1):
     print('Program starting in:', 5-i,' seconds')
     time.sleep(1)
 
@@ -148,20 +204,30 @@ current_error=1
 v=0.001
 
 while True:
-    PressKey(W)
+    '''PressKey(W)
     ReleaseKey(numpad4)
-    ReleaseKey(numpad5)
-    printscreen, location = grab_screen([0, 31, 720, 607])  #printscreen
+    ReleaseKey(numpad5)'''
+    printscreen = grab_screen([0, 31, 720, 607])  #printscreen
     printscreen = printscreen[initialY-r:initialY+r,initialX-r:initialX+r]#decupez
     blank = np.zeros((2*r,2*r))
-    blank2= np.zeros((2*r,2*r))
-    #cv2.line(location, (360, 323-31), (360, 523-31), (255, 0, 0), 5)
-
-
+    blank2 = np.zeros((2*r,2*r))
     ###Threshold
+    #pt linie
     _, g, _ , _= cv2.split(printscreen)
     _, radar = cv2.threshold(g, 254, 255, cv2.THRESH_TOZERO)
     cv2.imshow('Radar', radar)
+
+
+    #pt ore
+    # The order of the colors is blue, green, red
+    oreuri = HSVFILTER(printscreen)
+    detector = cv2.SimpleBlobDetector_create()
+    keypoints = detector.detect(oreuri)
+
+    blank4 = cv2.drawKeypoints(oreuri, keypoints, np.array([]), (0, 0, 255),
+                                         cv2.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS)
+    cv2.imshow('TARGET', oreuri)
+    cv2.imshow('TARGET_IN',blank4)
 
 
     #scot liniile
@@ -187,8 +253,8 @@ while True:
 
 
     # Deseneaza punctele folosite
-    for each in points:
-        blank = cv2.circle(blank, (int(each[0]), int(each[1])), 1, (255, 0, 0),1)
+    '''for each in points:
+        blank = cv2.circle(blank, (int(each[0]), int(each[1])), 1, (255, 0, 0),1)'''
 
 
     angle = get_angle2(currentX,currentY,direction[0],direction[1])
@@ -203,8 +269,8 @@ while True:
             except:
                 u = current_error * kp + sum_error * ki
 
-            PressKey(numpad5)
-            time.sleep(v*abs(u))
+            #PressKey(numpad5)
+            #time.sleep(v*abs(u))
             #ReleaseKey(numpad5)
         elif currentX>direction[0]:
             sum_error = sum_error + distance
@@ -213,13 +279,13 @@ while True:
             except:
                 u = current_error * kp + sum_error * ki
 
-            PressKey(numpad4)
-            time.sleep(v * abs(u))
+            #PressKey(numpad4)
+            #time.sleep(v * abs(u))
             #ReleaseKey(numpad4)
         #print("U=", u, 'current_error',current_error,'sum_error',sum_error)
 
-    cv2.imshow('Linii', blank2)
-    cv2.imshow('Puncte scoase', blank)
+    #cv2.imshow('Linii', blank2)
+    #cv2.imshow('Puncte scoase', blank)
     update_direction(points)
     #print(direction[0],direction[1])
     printscreen = cv2.circle(printscreen, (int(direction[0]), int(direction[1])), 1, (255, 0, 255), 5)
