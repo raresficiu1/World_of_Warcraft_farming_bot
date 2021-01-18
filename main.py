@@ -92,12 +92,16 @@ def get_filters_from_panel():
 def HSVFILTER(original_image):
     global HMin, HMax, VMin, VMax, SMin, SMax
     frame_HSV = cv2.cvtColor(original_image, cv2.COLOR_BGR2HSV)
+
     frame_threshold = cv2.inRange(frame_HSV, (HMin, SMin, VMin), (HMax, SMax, VMax))
+
     aux= np.zeros((250,250,3))
-    aux[0:250,0:250,1]=frame_threshold
-    aux[0:250, 0:250, 0] = frame_threshold
-    aux[0:250, 0:250, 2] = frame_threshold
-    aux = cv2.cvtColor(original_image, cv2.COLOR_BGR2GRAY)
+    aux[0:250,0:250,1]=frame_threshold[initialY-r:initialY+r,initialX-r:initialX+r]
+    aux[0:250, 0:250, 0] = frame_threshold[initialY-r:initialY+r,initialX-r:initialX+r]
+    aux[0:250, 0:250, 2] = frame_threshold[initialY-r:initialY+r,initialX-r:initialX+r]
+
+
+    #aux = cv2.cvtColor(original_image, cv2.COLOR_BGR2GRAY)
 
     return(aux)
 
@@ -171,7 +175,7 @@ def calibrate():
 
         if(pressed):
             get_filters_from_panel()
-            cv2.imshow('calibration_window', HSVFILTER(printscreen))
+            cv2.imshow('calibration_window2', HSVFILTER(printscreen))
         else:
             cv2.imshow('calibration_window', printscreen)
 
